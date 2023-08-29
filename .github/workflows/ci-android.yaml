@@ -21,12 +21,12 @@ jobs:
           
       - name: Build and Test
         run: |
-          cd app
+          cd app/src/main
           ./gradlew build
           
       - name: Run Unit Tests
         run: |
-          cd app
+          cd app/src/main
           ./gradlew test
           
       - name: Upload Test Report
