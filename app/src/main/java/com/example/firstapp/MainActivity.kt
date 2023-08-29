@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
             FirstAppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    Greeting("Android")
+                    Greeting("Arun")
                 }
             }
         }
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
-            text = "Hello $name!",
+            text = "Hello, my name is $name!",
             modifier = modifier
     )
 }
@@ -38,6 +38,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     FirstAppTheme {
-        Greeting("Android")
+        Greeting("Arun")
     }
 }
