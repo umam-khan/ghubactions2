@@ -19,6 +19,10 @@ jobs:
           java-version: '17'
           distribution: 'adopt'
           
+      - name: Set Executable Permission for gradlew
+        run: |
+          chmod +x ./gradlew  # Set executable permission for gradlew script
+          
       - name: Build and Test
         run: |
           ./gradlew build
