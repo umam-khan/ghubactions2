@@ -63,14 +63,14 @@ jobs:
               pull_number: pullRequestNumber,
               reviewers,
             });
-          token: '${{ secrets.GITHUB_TOKEN }}'
+          token: '${{ secrets.PAT_TOKEN }}'
       - name: Wait for Approvals
         id: approvals
         run: >
           pullRequestNumber=$(cat $GITHUB_EVENT_PATH | jq -r
           .pull_request.number)
 
-          token="${{ secrets.GITHUB_TOKEN }}"
+          token="${{ secrets.PAT_TOKEN }}"
 
 
           while true; do
@@ -100,4 +100,4 @@ jobs:
               pull_number: pullRequestNumber,
               merge_method: 'squash',
             });
-          token: '${{ secrets.GITHUB_TOKEN }}'
+          token: '${{ secrets.PAT_TOKEN }}'
