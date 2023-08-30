@@ -4,8 +4,6 @@ name: Auto Merge Pull Request
     branches:
       - feature/*
       - fix/*
-    paths-ignore:
-      - '**/*.md'
 jobs:
   automerge:
     runs-on: ubuntu-latest
@@ -14,47 +12,92 @@ jobs:
         uses: actions/checkout@v2
       - name: Create Pull Request
         id: create_pr
-        uses: peter-evans/create-pull-request@v5.0.2
+        uses: actions/github-script@v5
         with:
-          token: '${{ secrets.PAT_TOKEN }}'
-          commit-message: Auto-generated pull request
-          title: Auto-generated pull request
-          body: |
-            This pull request was automatically created by a workflow.
-          branch: main
-      - name: Add Automatic Pull Request Reviewers
-        uses: buzato/add-reviewer-gh-action@1.0.5
+          script: >
+            const { data: repo } = await github.repos.get({ owner:
+            context.repo.owner, repo: context.repo.repo });
+
+            const { data: branches } = await github.repos.listBranches({ owner:
+            context.repo.owner, repo: context.repo.repo });
+
+            const base = repo.default_branch;
+
+            const head = branches.find(branch =>
+            context.payload.ref.includes(branch.name)).name;
+
+            const title = `Auto-generated pull request from ${head} to ${base}`;
+
+            const body = 'This pull request was automatically created by a
+            workflow.';
+
+            const response = await github.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base,
+              head,
+              title,
+              body,
+            });
+
+            core.setOutput('pull-request-number', response.data.number);
+          token: '${{ secrets.GITHUB_TOKEN }}'
+      - name: Add Reviewers
+        uses: actions/github-script@v5
         with:
-          reviewers: Kumararun2002@yahoo.com
-          token: '${{ secrets.PAT_TOKEN }}'
+          script: >
+            const { data: collaborators } = await
+            github.repos.listCollaborators({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const pullRequestNumber = context.payload.pull_request.number;
+
+            const reviewers = collaborators.map(collaborator =>
+            collaborator.login);
+
+            await github.pulls.createReviewRequest({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequestNumber,
+              reviewers,
+            });
+          token: '${{ secrets.GITHUB_TOKEN }}'
       - name: Wait for Approvals
         id: approvals
-        run: |
-          pr_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
-          token="${{ secrets.PAT_TOKEN }}"
+        run: >
+          pullRequestNumber=$(cat $GITHUB_EVENT_PATH | jq -r
+          .pull_request.number)
+
+          token="${{ secrets.GITHUB_TOKEN }}"
+
 
           while true; do
             approval_count=$(curl -s -H "Authorization: token $token" \
-              "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/reviews" | \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$pullRequestNumber/reviews" | \
               jq '[.[] | select(.state == "APPROVED")] | length')
             
-            if [ "$approval_count" -ge 1 ]; then
-              echo "At least one required approval received."
+            if [ "$approval_count" -eq $(wc -l <<< "$reviewers") ]; then
+              echo "All required approvals received."
               break
             fi
             
             echo "Waiting for approvals... (Currently approved: $approval_count)"
             sleep 60  # Wait for 1 minute before checking again
           done
+        env:
+          reviewers: '${{ steps.create_pr.outputs.reviewers }}'
       - name: Merge Pull Request
         if: steps.approvals.outputs.approved == 'true'
         uses: actions/github-script@v5
         with:
           script: |
-            const prNumber = context.payload.pull_request.number;
+            const pullRequestNumber = context.payload.pull_request.number;
             await github.pulls.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: prNumber,
+              pull_number: pullRequestNumber,
               merge_method: 'squash',
             });
+          token: '${{ secrets.GITHUB_TOKEN }}'
