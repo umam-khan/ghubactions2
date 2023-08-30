@@ -21,7 +21,7 @@ jobs:
           title: Auto-generated pull request
           body: |
             This pull request was automatically created by a workflow.
-          branch: automerge
+          branch: main
       - name: Add Automatic Pull Request Reviewers
         uses: buzato/add-reviewer-gh-action@1.0.5
         with:
