@@ -41,7 +41,7 @@ jobs:
             });
 
             core.setOutput('pull-request-number', response.data.number);
-          token: '${{ secrets.GITHUB_TOKEN }}'
+          token: '${{ secrets.PAT_TOKEN }}'
       - name: Add Reviewers
         uses: actions/github-script@v5
         with:
