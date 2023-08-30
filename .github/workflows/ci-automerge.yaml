@@ -26,10 +26,19 @@ jobs:
             "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls" | jq -r .number)
           echo "::set-output name=pull-request-number::$pr_number"
       - name: Add Automatic Pull Request Reviewers
-        uses: buzato/add-reviewer-gh-action@1.0.5
-        with:
-          reviewers: Kumararun2002@yahoo.com
-          token: '${{ secrets.PAT_TOKEN }}'
+        run: |
+          pr_number="${{ steps.create_pr.outputs.pull-request-number }}"
+          token="${{ secrets.PAT_TOKEN }}"
+
+          reviewers=$(curl -s -H "Authorization: token $token" \
+            "https://api.github.com/repos/${{ github.repository }}/collaborators" | jq -r '.[].login')
+
+          for reviewer in $reviewers; do
+            curl -s -X POST \
+              -H "Authorization: token $token" \
+              -d "{\"reviewers\":[\"$reviewer\"]}" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/requested_reviewers"
+          done
       - name: Wait for Approvals
         id: approvals
         run: |
