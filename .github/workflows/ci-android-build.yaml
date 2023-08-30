@@ -1,7 +1,7 @@
 name: Build and Deploy APK
 on:
   workflow_run:
-    workflows: Android CI
+    workflows: ["Android CI"]
     types:
       - completed
 
