@@ -22,20 +22,11 @@ jobs:
           body: |
             This pull request was automatically created by a workflow.
           branch: automerge
-      - name: Add Reviewers
-        uses: actions/github-script@v5
+      - name: Add Automatic Pull Request Reviewers
+        uses: buzato/add-reviewer-gh-action@1.0.5
         with:
-          script: |
-            const reviewers = await github.repos.listCollaborators({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            await github.pulls.requestReviewers({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              reviewers: reviewers.data.map(collaborator => collaborator.login),
-            });
+          reviewers: Kumararun2002@yahoo.com
+          token: '${{ secrets.PAT_TOKEN }}'
       - name: Wait for Approvals
         id: approvals
         run: |
