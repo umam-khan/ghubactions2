@@ -14,33 +14,25 @@ jobs:
         uses: actions/checkout@v2
       - name: Create Pull Request
         id: create_pr
-        run: |
-          title="Auto-generated pull request"
-          body="This pull request was automatically created by a workflow."
-          head=$(git rev-parse --abbrev-ref HEAD)
-          base="main"
-          pr_number=$(curl -s -X POST \
-            -H "Authorization: token ${{ secrets.PAT_TOKEN }}" \
-            -d "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls" | jq -r .number)
-          echo "::set-output name=pull-request-number::$pr_number"
+        uses: peter-evans/create-pull-request@v5.0.2
+        with:
+          token: '${{ secrets.PAT_TOKEN }}'
+          commit-message: Auto-generated pull request
+          title: Auto-generated pull request
+          body: |
+            This pull request was automatically created by a workflow.
+          branch: main
       - name: Add Automatic Pull Request Reviewers
-        run: |
-          pr_number="${{ steps.create_pr.outputs.pull-request-number }}"
-          token="${{ secrets.PAT_TOKEN }}"
-          reviewers=$(curl -s -H "Authorization: token $token" \
-            "https://api.github.com/repos/${{ github.repository }}/collaborators" | jq -r '.[].login')
-          for reviewer in $reviewers; do
-            curl -s -X POST \
-              -H "Authorization: token $token" \
-              -d "{\"reviewers\":[\"$reviewer\"]}" \
-              "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/requested_reviewers"
-          done
+        uses: buzato/add-reviewer-gh-action@1.0.5
+        with:
+          reviewers: Kumararun2002@yahoo.com
+          token: '${{ secrets.PAT_TOKEN }}'
       - name: Wait for Approvals
         id: approvals
         run: |
-          pr_number=$(echo "${{ steps.create_pr.outputs.pull-request-number }}")
+          pr_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           token="${{ secrets.PAT_TOKEN }}"
+
           while true; do
             approval_count=$(curl -s -H "Authorization: token $token" \
               "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/reviews" | \
