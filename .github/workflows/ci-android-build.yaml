@@ -9,24 +9,24 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v2
       - name: Set up JDK 17
         uses: actions/setup-java@v2
         with:
           java-version: '17'
-          distribution: 'adopt'
+          distribution: adopt
       - name: Set Executable Permission for gradlew
         run: |
-          chmod +x ./gradlew    
+          chmod +x ./gradlew
       - name: Build Android APK
         run: ./gradlew assembleDebug
-      - name: Rename APK with Timestamp
+      - name: Rename APK
         run: >-
-          mv app/build/outputs/apk/debug/app-debug.apk "testBuilds/demo-$(date
-          +'%Y%m%d%H%M%S').apk"
+          mv app/build/outputs/apk/debug/app-debug.apk
+          "testBuilds/demo-\$DATETIME.apk"
       - name: Add APK to Repository Folder
-        run: mv "testBuilds/demo-*.apk" testBuilds/
+        run: mv "testBuilds/demo-\$DATETIME.apk" testBuilds/
       - name: Commit and Push Changes
         run: |
           git config --local user.email "action@github.com"
