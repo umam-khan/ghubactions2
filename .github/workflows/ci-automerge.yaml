@@ -21,8 +21,7 @@ jobs:
           title: Auto-generated pull request
           body: |
             This pull request was automatically created by a workflow.
-          branch: main
-          branch-suffix: '-automerge'
+          branch: automerge
       - name: Add Reviewers
         uses: actions/github-script@v5
         with:
