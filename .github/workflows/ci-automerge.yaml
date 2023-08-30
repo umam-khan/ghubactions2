@@ -33,7 +33,7 @@ jobs:
       - name: Wait for Approvals
         id: approvals
         run: |
-          pr_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          pr_number=$(echo "${{ steps.create_pr.outputs.pull-request-number }}")
           token="${{ secrets.PAT_TOKEN }}"
 
           while true; do
