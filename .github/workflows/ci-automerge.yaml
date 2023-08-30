@@ -1,0 +1,70 @@
+name: Auto Merge Pull Request
+'on':
+  push:
+    branches:
+      - feature/*
+      - fix/*
+    paths-ignore:
+      - '**/*.md'
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Create Pull Request
+        id: create_pr
+        uses: peter-evans/create-pull-request@v5.0.2
+        with:
+          token: '${{ secrets.PAT_TOKEN }}'
+          commit-message: Auto-generated pull request
+          title: Auto-generated pull request
+          body: |
+            This pull request was automatically created by a workflow.
+          branch: main
+          branch-suffix: '-automerge'
+      - name: Add Reviewers
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const reviewers = await github.repos.listCollaborators({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            await github.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: reviewers.data.map(collaborator => collaborator.login),
+            });
+      - name: Wait for Approvals
+        id: approvals
+        run: |
+          pr_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          token="${{ secrets.PAT_TOKEN }}"
+
+          while true; do
+            approval_count=$(curl -s -H "Authorization: token $token" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/reviews" | \
+              jq '[.[] | select(.state == "APPROVED")] | length')
+            
+            if [ "$approval_count" -ge 1 ]; then
+              echo "At least one required approval received."
+              break
+            fi
+            
+            echo "Waiting for approvals... (Currently approved: $approval_count)"
+            sleep 60  # Wait for 1 minute before checking again
+          done
+      - name: Merge Pull Request
+        if: steps.approvals.outputs.approved == 'true'
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            await github.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              merge_method: 'squash',
+            });
