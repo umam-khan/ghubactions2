@@ -29,12 +29,12 @@ jobs:
           "testBuilds/demo-\$DATETIME.apk"
       - name: Configure Git
         run: |
-          git config --local user.email "Kumararun2002@yahoo.com"
-          git config --local user.name "Your Name"
+          git config --local user.email "umam.khan@outlook.com"
+          git config --local user.name "umam-khan"
       - name: Commit and Push Changes
         run: |
           git add testBuilds/*
           git commit -m "Add debug APK"
-          git push https://github.com/ArunPerkash/ASDT_3/ HEAD:main
+          git push https://github.com/umam-khan/ghubactions2/ HEAD:main
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
