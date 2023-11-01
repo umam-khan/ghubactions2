@@ -1,5 +1,4 @@
 name: Auto Merge Pull Request
-
 'on':
   push:
     branches:
@@ -11,6 +10,7 @@ name: Auto Merge Pull Request
 jobs:
   automerge:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
@@ -53,23 +53,25 @@ jobs:
 
             if [ "$approval_count" -ge 1 ]; then
               echo "At least one required approval received."
-              echo "::set-output name=approved::true"
               break
             fi
 
             echo "Waiting for approvals... (Currently approved: $approval_count)"
             sleep 60  # Wait for 1 minute before checking again
-          done
 
       - name: Merge Pull Request
-        if: steps.approvals.outputs.approved == 'true'
-        uses: actions/github-script@v5
-        with:
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            await github.pulls.merge({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber,
-              merge_method: 'squash',
-            });
+        run: |
+          pr_number=$(echo "${{ steps.create_pr.outputs.pull-request-number }}")
+          token="${{ secrets.PAT_TOKEN }}"
+          state=$(curl -s -H "Authorization: token $token" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number" | jq -r .state)
+
+          # Ensure the PR is still open before trying to merge
+          if [[ "$state" == "open" ]]; then
+            curl -X PUT \
+              -H "Authorization: token $token" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/merge" \
+              -d '{"merge_method": "squash"}'
+          else
+            echo "Pull request is not open, skipping merge."
