@@ -1,4 +1,5 @@
 name: Auto Merge Pull Request
+
 'on':
   push:
     branches:
@@ -6,12 +7,15 @@ name: Auto Merge Pull Request
       - fix/*
     paths-ignore:
       - '**/*.md'
+
 jobs:
   automerge:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+        
       - name: Create Pull Request
         id: create_pr
         run: |
@@ -24,6 +28,7 @@ jobs:
             -d "{\"title\":\"$title\",\"body\":\"$body\",\"head\":\"$head\",\"base\":\"$base\"}" \
             "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls" | jq -r .number)
           echo "::set-output name=pull-request-number::$pr_number"
+          
       - name: Add Automatic Pull Request Reviewers
         run: |
           pr_number="${{ steps.create_pr.outputs.pull-request-number }}"
@@ -36,24 +41,29 @@ jobs:
               -d "{\"reviewers\":[\"$reviewer\"]}" \
               "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/requested_reviewers"
           done
+          
       - name: Wait for Approvals
         id: approvals
         run: |
-          pr_number=$(echo "${{ steps.create_pr.outputs.pull-request-number }}")
+          pr_number="${{ steps.create_pr.outputs.pull-request-number }}"
           token="${{ secrets.PAT_TOKEN }}"
-          while true; do
+          retries=0
+          while [ $retries -lt 10 ]; do  # Check for approvals for up to 10 minutes.
             approval_count=$(curl -s -H "Authorization: token $token" \
               "https://api.github.com/repos/${{ github.repository }}/pulls/$pr_number/reviews" | \
               jq '[.[] | select(.state == "APPROVED")] | length')
             
             if [ "$approval_count" -ge 1 ]; then
+              echo "::set-output name=approved::true"
               echo "At least one required approval received."
               break
             fi
             
             echo "Waiting for approvals... (Currently approved: $approval_count)"
             sleep 60  # Wait for 1 minute before checking again
+            ((retries++))
           done
+          
       - name: Merge Pull Request
         if: steps.approvals.outputs.approved == 'true'
         uses: actions/github-script@v5
